@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!-- Main Background -->
+    <color name="background_primary">#0F172A</color>
+
+    <!-- Cards -->
+    <color name="background_card">#1E293B</color>
+
+    <!-- Protection Colors -->
+    <color name="protection_green">#22C55E</color>
+    <color name="protection_green_dark">#132B25</color>
+
+    <!-- Danger Colors -->
+    <color name="danger_red">#EF4444</color>
+    <color name="danger_red_dark">#3F1115</color>
+
+    <!-- Warning -->
+    <color name="warning_amber">#F59E0B</color>
+
+    <!-- Accent -->
+    <color name="accent_cyan">#22D3EE</color>
+
+    <!-- Text -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#CBD5E1</color>
+    <color name="text_muted">#94A3B8</color>
+
+    <!-- Border -->
+    <color name="border_color">#334155</color>
+
+</resources>
