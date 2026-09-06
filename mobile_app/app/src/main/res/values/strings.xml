@@ -1,0 +1,25 @@
+<resources>
+
+    <string name="app_name">SwarVed AI</string>
+
+    <string name="guard_active">
+        SWARVED AI GUARD ACTIVE
+    </string>
+
+    <string name="protection_description">
+        On-Device &lt;45ms Protection
+    </string>
+
+    <string name="normal_voice">
+        NORMAL HUMAN VOICE
+    </string>
+
+    <string name="threat_analysis">
+        LIVE ACOUSTIC THREAT ANALYSIS
+    </string>
+
+    <string name="recent_incidents">
+        RECENT INTERCEPTED INCIDENTS
+    </string>
+
+</resources>
