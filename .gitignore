@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Allow Android native libraries (not Python C extensions)
+!mobile_app/app/src/main/jniLibs/**/*.so
