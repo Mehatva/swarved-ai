@@ -100,6 +100,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         test_onnx_model_on_audio(sys.argv[1])
     else:
+        # Default fallback to telephony call audio sample
         sample_files = [
             f for f in os.popen("find ml_engine/data/asvspoof -name '*.flac' | head -n 1").read().strip().split("\n") if f
         ]
