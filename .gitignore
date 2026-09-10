@@ -21,3 +21,14 @@ venv/
 
 # Mac OS System Files
 .DS_Store
+
+# IDE & Tool Cache Ignores
+.idea/
+.vscode/
+.mypy_cache/
+.ruff_cache/
+tempCodeRunnerFile.py
+
+# Allow Android native libraries (.so)
+!mobile_app/app/src/main/jniLibs/**/*.so
+!mobile_app/app/src/main/jniLibs/*/*.so
