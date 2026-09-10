@@ -1,6 +1,12 @@
 <resources>
-    <string name="app_name">SwarVed Guard</string>
+    <string name="app_name">SwarVed AI</string>
     <string name="audio_guard_channel_name">SwarVed audio protection</string>
     <string name="audio_guard_notification_title">SwarVed audio protection is active</string>
     <string name="audio_guard_notification_text">Monitoring supported microphone input on this device.</string>
+
+    <string name="guard_active">SWARVED AI GUARD ACTIVE</string>
+    <string name="protection_description">On-Device &lt;45ms Protection</string>
+    <string name="normal_voice">NORMAL HUMAN VOICE</string>
+    <string name="threat_analysis">LIVE ACOUSTIC THREAT ANALYSIS</string>
+    <string name="recent_incidents">RECENT INTERCEPTED INCIDENTS</string>
 </resources>
