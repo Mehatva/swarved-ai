@@ -46,12 +46,25 @@ def run_live_mic_guard():
                 time.sleep(1.0)
                 sample_count += 1
 
-                # Normalize current buffer
+                # Check audio energy (RMS)
                 pcm = buffer.copy()
-                max_val = np.max(np.abs(pcm))
                 rms = np.sqrt(np.mean(pcm ** 2))
+                max_val = np.max(np.abs(pcm))
 
-                if max_val > 0:
+                # Audio volume meter bar
+                mic_bar_len = int(min(rms * 100, 20))
+                mic_bar = "█" * mic_bar_len + "░" * (20 - mic_bar_len)
+
+                # Silence & Low-Energy Noise Gate (prevents gain-boosting background room hiss)
+                if rms < 0.015:
+                    sys.stdout.write(
+                        f"\r[{sample_count:03d}s] Mic Volume: [{mic_bar}] | Real Voice: [░░░░░░░░░░░░░░░░░░░░]  --- % | ⏸️ SILENT / BACKGROUND NOISE                   "
+                    )
+                    sys.stdout.flush()
+                    continue
+
+                # Safe Normalization (only normalize if signal is above noise floor)
+                if max_val > 0.05:
                     pcm = pcm / max_val
 
                 input_data = np.expand_dims(pcm, axis=0).astype(np.float32)
@@ -63,17 +76,11 @@ def run_live_mic_guard():
                 real_prob = probs[0] * 100.0
                 fake_prob = probs[1] * 100.0
 
-                # Audio meter bar
-                mic_bar_len = int(min(rms * 100, 20))
-                mic_bar = "█" * mic_bar_len + "░" * (20 - mic_bar_len)
-
                 # Risk meter bar
                 real_bar_len = int(real_prob / 5)
                 real_bar = "█" * real_bar_len + "░" * (20 - real_bar_len)
 
-                if rms < 0.005:
-                    status_str = "⏸️ SILENT / NO SPEECH"
-                elif real_prob >= 50.0:
+                if real_prob >= 50.0:
                     status_str = f"✅ SAFE (GENUINE VOICE - {real_prob:.1f}%)"
                 else:
                     status_str = f"🚨 DANGER (SYNTHETIC DEEPFAKE - {fake_prob:.1f}%)"
