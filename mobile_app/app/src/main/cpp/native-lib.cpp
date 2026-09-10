@@ -132,8 +132,20 @@ private:
     // ASSUMED: direct normalized raw PCM is the model feature representation.
     // Replace only this function when the confirmed model contract requires MFCC or log-mel features.
     static void PrepareModelInput(const jshort* pcm, std::vector<float>& input_buffer) {
+        float max_abs = 0.0001F;
         for (size_t index = 0; index < kFrameSamples; ++index) {
-            input_buffer[index] = static_cast<float>(pcm[index]) / 32768.0F;
+            float val = static_cast<float>(pcm[index]) / 32768.0F;
+            input_buffer[index] = val;
+            if (std::abs(val) > max_abs) {
+                max_abs = std::abs(val);
+            }
+        }
+        // Nominal Peak Scaling to 0.8 (maps any microphone audio level into neural network's optimal dynamic range)
+        if (max_abs > 0.0001F) {
+            float scale = 0.8F / max_abs;
+            for (size_t index = 0; index < kFrameSamples; ++index) {
+                input_buffer[index] *= scale;
+            }
         }
     }
 

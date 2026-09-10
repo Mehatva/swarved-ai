@@ -55,17 +55,17 @@ def run_live_mic_guard():
                 mic_bar_len = int(min(rms * 200, 20))
                 mic_bar = "█" * mic_bar_len + "░" * (20 - mic_bar_len)
 
-                # Silence threshold for Mac laptop mics (RMS < 0.0015 is silence)
-                if rms < 0.0015:
+                # Silence Gate (RMS < 0.0010 is complete silence)
+                if rms < 0.0010:
                     sys.stdout.write(
                         f"\r[{sample_count:03d}s] Mic Volume: [{mic_bar}] | Real Voice: [░░░░░░░░░░░░░░░░░░░░]  --- % | ⏸️ SILENT / NO SPEECH                          "
                     )
                     sys.stdout.flush()
                     continue
 
-                # Safe Peak Normalization
-                if max_val > 0.01:
-                    pcm = pcm / max_val
+                # Nominal Peak Scaling to 0.8 (maps any speech level into neural network's optimal dynamic range)
+                if max_val > 0.0001:
+                    pcm = (pcm / max_val) * 0.8
 
                 input_data = np.expand_dims(pcm, axis=0).astype(np.float32)
                 logits = session.run([output_name], {input_name: input_data})[0]
