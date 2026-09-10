@@ -1,4 +1,4 @@
-package com.swarved.ai.model
+package com.swarved.guard.model
 
 data class ScamIncident(
     val timestamp: String,

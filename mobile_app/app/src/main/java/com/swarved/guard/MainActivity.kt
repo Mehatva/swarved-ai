@@ -4,23 +4,15 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.swarved.guard.ui.theme.SwarVedGuardTheme
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.swarved.guard.alert.ScamAlertOverlayService
 import com.swarved.guard.audio.AudioCaptureService
+import com.swarved.guard.adapter.IncidentAdapter
+import com.swarved.guard.model.ScamIncident
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private val runtimePermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
@@ -37,17 +29,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            SwarVedGuardTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
+        setContentView(R.layout.activity_main)
+
+        val recyclerView = findViewById<RecyclerView>(R.id.recyclerIncidents)
+        val incidents = listOf(
+            ScamIncident("Today • 4:32 PM", "Unknown Caller (Deepfake Impersonation)", 96),
+            ScamIncident("Today • 1:18 PM", "+91 98XXXXXX12 (Voice Clone Attack)", 89),
+            ScamIncident("Yesterday • 8:45 PM", "Unknown Caller (Digital Arrest Scam)", 94)
+        )
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = IncidentAdapter(incidents)
+
         requestRuntimePermissionsOrContinue()
     }
 

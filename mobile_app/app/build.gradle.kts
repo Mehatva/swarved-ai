@@ -12,14 +12,12 @@ val debugBackendBaseUrl = providers.gradleProperty("SWARVED_BACKEND_BASE_URL")
 android {
     namespace = "com.swarved.guard"
     // MUST VERIFY: local AGP 9.4.0, Android SDK, and Build Tools must actually support API 37.
-    compileSdk {
-        version = release(37)
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.swarved.guard"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
