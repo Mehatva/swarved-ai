@@ -52,19 +52,19 @@ def run_live_mic_guard():
                 max_val = np.max(np.abs(pcm))
 
                 # Audio volume meter bar
-                mic_bar_len = int(min(rms * 100, 20))
+                mic_bar_len = int(min(rms * 200, 20))
                 mic_bar = "█" * mic_bar_len + "░" * (20 - mic_bar_len)
 
-                # Silence & Low-Energy Noise Gate (prevents gain-boosting background room hiss)
-                if rms < 0.015:
+                # Silence threshold for Mac laptop mics (RMS < 0.0015 is silence)
+                if rms < 0.0015:
                     sys.stdout.write(
-                        f"\r[{sample_count:03d}s] Mic Volume: [{mic_bar}] | Real Voice: [░░░░░░░░░░░░░░░░░░░░]  --- % | ⏸️ SILENT / BACKGROUND NOISE                   "
+                        f"\r[{sample_count:03d}s] Mic Volume: [{mic_bar}] | Real Voice: [░░░░░░░░░░░░░░░░░░░░]  --- % | ⏸️ SILENT / NO SPEECH                          "
                     )
                     sys.stdout.flush()
                     continue
 
-                # Safe Normalization (only normalize if signal is above noise floor)
-                if max_val > 0.05:
+                # Safe Peak Normalization
+                if max_val > 0.01:
                     pcm = pcm / max_val
 
                 input_data = np.expand_dims(pcm, axis=0).astype(np.float32)
