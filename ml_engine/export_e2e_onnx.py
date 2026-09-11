@@ -8,12 +8,12 @@ def export_e2e_raw_pcm_onnx():
     print("📦 Exporting Fine-Tuned Dual-Stream OPUS Engine to ONNX for Android...")
     device = torch.device("cpu")
     model = SwarVedDualStreamEngine(unfreeze_layers=4)
-    checkpoint_path = "ml_engine/models/swarved_dual_stream_best.pt"
+    checkpoint_path = "ml_engine/models/swarved_dual_stream_noise_robust.pt"
 
     if os.path.exists(checkpoint_path):
         ckpt = torch.load(checkpoint_path, map_location=device)
         model.load_state_dict(ckpt['model_state_dict'] if 'model_state_dict' in ckpt else ckpt, strict=False)
-        print(f"   Loaded fine-tuned dual-stream weights from {checkpoint_path}")
+        print(f"   Loaded noise-robust dual-stream weights from {checkpoint_path}")
     else:
         print(f"   Warning: Checkpoint not found at {checkpoint_path}")
 
@@ -21,8 +21,8 @@ def export_e2e_raw_pcm_onnx():
 
     # Dummy raw 16kHz PCM audio waveform input (1, 48000) = 3 seconds @ 16kHz float32 in [-1, 1]
     dummy_input = torch.randn(1, 48000)
-    onnx_file = "ml_engine/models/swarved_e2e_raw_pcm.onnx"
-    quantized_file = "ml_engine/models/swarved_e2e_raw_pcm_int8.onnx"
+    onnx_file = "ml_engine/models/swarved_noise_robust.onnx"
+    quantized_file = "ml_engine/models/swarved_noise_robust_int8.onnx"
 
     os.makedirs("ml_engine/models", exist_ok=True)
 

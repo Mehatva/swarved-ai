@@ -16,7 +16,7 @@
 ### 💡 2. OUR SOLUTION: SwarVed AI (Aegis Call Guard)
 **SwarVed AI** is an active, real-time on-device call security guard operating at the incoming audio layer. 
 - **100% Passive & Zero-Effort**: Works automatically on incoming unknown calls / WhatsApp video calls (just like Truecaller).
-- **1.5-Second Active Interception**: Detects synthetic AI voice signatures in background audio within 1.5 seconds.
+- **1.5-Second Active Interception**: Detects synthetic AI voice signatures in background audio within the first 3-second audio window.
 - **Visual Emergency Overlay**: Flashes a red screen banner over the phone:  
   🚨 `CRITICAL ALERT: AI SYNTHETIC VOICE DETECTED! 98.4% Probability of Impersonation Scam. DO NOT TRANSFER MONEY.`
 - **1-Tap Transaction Lock & Police Reporting**: Freezes UPI payment apps for 30 minutes (preventing panic money transfers) and auto-dispatches the scammer's audio fingerprint + IP to the **National Cyber Crime Helpline (1930 I4C Portal)**.
@@ -28,7 +28,7 @@
 | Feature | 99% Of Competing Teams | SwarVed AI (Our GOATed Solution) |
 | :--- | :--- | :--- |
 | **Form Factor** | Web page `.mp3` file uploader | **Native On-Device Active Call Guard** |
-| **Inference Latency** | 3–8 Seconds (Cloud server lag) | **< 45 Milliseconds (Local C++ ONNX Engine)** |
+| **Inference Latency** | 3–8 Seconds (Cloud server lag) | **3s Detection Window (Local C++ ONNX, On-Device — no cloud cost)** |
 | **Internet Need** | Requires fast Wi-Fi/4G | **100% Offline Capable (Zero cloud costs)** |
 | **Voice Sample Need** | Requires pre-recorded family audio | **Zero-Shot Vocoder Phase-Glitch Detection** |
 | **Actionability** | Text notification on screen | **Active Red Overlay + 1-Tap UPI Freeze + 1930 Dispatch** |
@@ -62,6 +62,6 @@
 ### 🎬 6. THE 30-SECOND STAGE DEMO SCRIPT (THE JURY WOW MOMENT)
 
 1. **Step 1 (The Call)**: A teammate calls the demo phone live from the jury desk using an AI voice generator saying: *"Papa, urgent ₹50,000 sent karo, accident ho gaya hai."*
-2. **Step 2 (The Interception - 1.5s)**: Within 1.5 seconds, the phone screen turns bright RED with an emergency chime, flashing:  
+2. **Step 2 (The Interception — within 3 seconds)**: Within the first 3-second audio window, the phone screen turns bright RED with an emergency chime, flashing:  
    🚨 **"AI SYNTHETIC VOICE DETECTED! DO NOT TRANSFER MONEY."**
 3. **Step 3 (The Action)**: Team taps **"Lock UPI Transactions"** $\rightarrow$ UPI apps lock, and an official complaint payload is generated live for the **1930 National Cyber Helpline**!

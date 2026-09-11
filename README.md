@@ -9,10 +9,40 @@
 **SwarVed AI** is an active, real-time, on-device mobile security system designed to protect citizens from AI voice cloning, real-time voice conversion (RVC / pitch shifters), and "Digital Arrest" extortion scams in **<45 milliseconds**.
 
 ### 🌟 Key Highlights
-- **100% On-Device & Offline**: Executes a 12.4 MB Int8 quantized Conformer ONNX model locally on mobile CPU/NPU memory.
-- **Zero Privacy Leakage**: Intercepts audio in volatile RAM micro-buffers (0.1s sliding window). Zero audio recorded or saved to disk.
-- **Active Red Alert Interception**: Triggers a `SYSTEM_ALERT_WINDOW` emergency overlay banner over active call screens.
+- **100% On-Device & Offline**: Executes a noise-robust **97.81% accuracy** Dual-Stream INT8 ONNX model locally on mobile CPU.
+- **Zero Privacy Leakage**: Intercepts audio in volatile RAM micro-buffers (3s sliding window). Zero audio recorded or saved to disk.
+- **Active Red Alert Interception**: Triggers a `SYSTEM_ALERT_WINDOW` emergency overlay banner over active call screens in real time.
 - **National DPI Integration**: 1-tap UPI app lock + automated incident payload dispatch to the **National Cyber Crime Helpline (1930 I4C Gateway)**.
+
+---
+
+## 🧠 ML Engine — SwarVed Dual-Stream Architecture
+
+| Metric | Value |
+|---|---|
+| **Architecture** | Dual-Stream: SSL Wav2Vec2 + AASIST (Stream A) + LFCC-Res2Net (Stream B) |
+| **Peak Validation Accuracy** | **97.81%** |
+| **Real Voice Accuracy (FRR)** | **98.70%** (FRR: 1.30%) |
+| **Deepfake Detection (FAR)** | **96.95%** (FAR: 3.05%) |
+| **ONNX INT8 Model Size** | **123 MB** (full E2E raw-audio pipeline) |
+| **CPU Inference Latency** | **132 ms** (3-second window) |
+| **Training Dataset** | ASVspoof 2021 LA (Telephony) + OPUS Codec + Room Noise Augmentation |
+
+```
+              Raw Audio Waveform (16 kHz PCM)
+                           │
+       ┌───────────────────┴───────────────────┐
+       ▼                                       ▼
+ Stream A: SSL Acoustic                Stream B: Phase-Spectral
+ Wav2Vec2 (8–11 unfrozen)             LFCC 180-dim Filterbank
+ + AASIST HS-GAT (128-dim)            + Res2Net-50 + SE (128-dim)
+       │                                       │
+       └─────────────────┬─────────────────────┘
+                         ▼
+             Dual AM-Softmax Fusion (256-dim)
+                         ▼
+        [ Real Voice vs. Deepfake — 97.81% Accuracy ]
+```
 
 ---
 
@@ -20,33 +50,88 @@
 
 ```mermaid
 graph TD
-    A[Incoming Phone / WhatsApp Call] --> B[RAM Micro-Buffer Audio Ingestion 100ms]
-    B --> C[RNNoise C++ Background Noise Pre-Filter]
-    C --> D[C++ Feature Extractor - MFCC/LFCC/Formant Ratio]
-    D --> E[C++ ONNX Runtime Engine - Conformer Int8 <45ms]
-    E --> F{Synthetic Prob > 0.85?}
-    F -- Yes --> G[SYSTEM_ALERT_WINDOW Red Warning Overlay]
-    G --> H[1-Tap Freeze GPay / PhonePe]
-    H --> I[FastAPI Government DPI Router]
-    I --> J[National Cyber Crime Helpline - 1930 I4C Portal]
+    A[Incoming Phone / WhatsApp Call] --> B[RAM Micro-Buffer AudioRecord 3s Window]
+    B --> C[C++ Peak Normalization & PCM Float32 Prep]
+    C --> D[C++ ONNX Runtime — Dual-Stream INT8 Engine · 3s detection window]
+    D --> E{Synthetic Prob > 0.85?}
+    E -- No --> F[Live Risk Meter UI Update — GREEN]
+    E -- Yes --> G[SYSTEM_ALERT_WINDOW Red Warning Overlay]
+    G --> H[1-Tap: 30-Min UPI Protection Lock]
+    H --> I[FastAPI Backend — POST /api/v1/i4c/dispatch]
+    I --> J[National Cyber Crime Helpline — 1930 I4C Portal]
 ```
 
 ---
 
 ## 🛠️ Repository Layout
-- `ml_engine/`: PyTorch Conformer model, feature extraction (`extract_features.py`), and Int8 ONNX export script.
-- `mobile_app/`: Android Kotlin background audio service, native C++ JNI bridge (`native-lib.cpp`), and Red Overlay UI.
-- `backend_service/`: FastAPI microservice handling 1930 Helpline dispatch payloads (`/api/v1/i4c/dispatch`).
-- `docs/`: Official SIH presentation deck, master execution plan, architecture diagrams, and team role guide.
+
+```
+swarved-ai/
+├── ml_engine/               # PyTorch training, ONNX export, live mic testing
+│   ├── train_dual_stream.py     # Dual-Stream SSL + LFCC-Res2Net trainer
+│   ├── finetune_noise_robust.py # Noise-robust head fine-tuning (5 epochs)
+│   ├── rawboost.py              # 7-algo waveform augmentation (Algos 1–7)
+│   ├── export_e2e_onnx.py       # End-to-End ONNX + INT8 export
+│   ├── test_live_mic.py         # Live Mac microphone deepfake detector
+│   └── models/
+│       ├── swarved_voice_guard_int8.onnx          # Head-only 3.94 MB
+│       └── swarved_noise_robust_int8.onnx         # Full E2E 123 MB ✅ (in Android app)
+├── mobile_app/              # Android Kotlin + Native C++ ONNX Runtime
+│   └── app/src/main/
+│       ├── assets/swarved_e2e_raw_pcm_int8.onnx   # Bundled model (123 MB)
+│       ├── cpp/native-lib.cpp                      # C++ JNI ONNX engine
+│       ├── java/com/swarved/guard/
+│       │   ├── MainActivity.kt                     # Dashboard + live risk meter
+│       │   ├── audio/AudioCaptureService.kt        # Foreground AudioRecord service
+│       │   ├── alert/ScamAlertOverlayService.kt    # Red SYSTEM_ALERT_WINDOW overlay
+│       │   └── protection/UPIFreezeManager.kt      # 30-min lock + I4C dispatch
+│       └── AndroidManifest.xml
+├── backend_service/         # FastAPI — I4C Dispatch & WebSocket Threat Feed
+│   ├── main.py                  # FastAPI app + CORS + lifespan
+│   ├── database.py              # SQLite async persistence
+│   ├── routes/i4c_dispatch.py   # POST /api/v1/i4c/dispatch
+│   ├── routes/threat_analytics.py # WebSocket /ws/threat-feed
+│   └── schemas/incident_schema.py # Pydantic CyberIncidentPayload
+└── docs/                    # SIH submission documents, master plan, tech explainer
+```
+
+---
+
+## 🚀 Running the Project
+
+### 1. Backend (FastAPI)
+```bash
+cd backend_service
+pip install -r requirements.txt
+python main.py
+# → Runs on http://0.0.0.0:8000
+# → Swagger UI: http://localhost:8000/docs
+```
+
+### 2. Live Mac Microphone Demo (without Android)
+```bash
+cd /path/to/swarved-ai
+pip install onnxruntime sounddevice torchaudio
+python3 ml_engine/test_live_mic.py
+# Silence gate: RMS < 0.008 | 5-window temporal smoothing
+```
+
+### 3. Android App
+```bash
+cd mobile_app
+# Open in Android Studio → Run on device
+# Requires: RECORD_AUDIO + SYSTEM_ALERT_WINDOW permissions
+# Backend URL: set SWARVED_BACKEND_BASE_URL in gradle.properties
+```
 
 ---
 
 ## 👥 Team & Development Branches
-- `main`: Protected stable base branch.
-- `feature/ml-engine`: PyTorch model training, feature extraction, and Int8 ONNX quantization.
-- `feature/android-app`: Android Kotlin services, C++ JNI bridge, and Red Alert Overlay UI.
-- `feature/fastapi-backend`: FastAPI 1930 Cyber Crime Helpline dispatch router & WebSockets feed.
-- `feature/ui-ux-design`: Mobile dashboard UI layouts and architecture graphic assets.
+- `main`: Protected stable branch — final integrated codebase.
+- `feature/ml-engine`: PyTorch dual-stream training, noise robustness fine-tuning, ONNX export.
+- `feature/android-app`: Android Kotlin services, C++ JNI bridge, Red Alert Overlay UI.
+- `feature/fastapi-backend`: FastAPI I4C dispatch router, SQLite persistence, WebSocket threat feed.
+- `feature/ui-ux-design`: Mobile dashboard UI layouts and drawable assets.
 
 ---
 

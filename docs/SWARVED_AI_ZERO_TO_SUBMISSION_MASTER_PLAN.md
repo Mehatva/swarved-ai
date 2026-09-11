@@ -7,12 +7,12 @@
 ---
 
 ## 📌 1. Project Overview & Core Value
-SwarVed AI is an active, real-time, on-device mobile security system that intercepts incoming phone calls and WhatsApp video calls to detect synthetic AI voice cloning, **real-time voice conversion (Male-to-Male RVC / Pitch Shifting)**, and "Digital Arrest" extortion scams in **<45 milliseconds**.
+SwarVed AI is an active, real-time, on-device mobile security system that intercepts incoming phone calls and WhatsApp video calls to detect synthetic AI voice cloning, **real-time voice conversion (Male-to-Male RVC / Pitch Shifting)**, and "Digital Arrest" extortion scams — **detecting threats within the first 3-second audio window**.
 
 ### Core Non-Negotiables:
-1. **100% On-Device Local Processing**: Audio is processed in volatile RAM micro-buffers (<45ms latency). Zero audio recorded or uploaded to cloud (100% private).
-2. **Active Real-Time Interception**: Instantly displays a `SYSTEM_ALERT_WINDOW` Red Warning Overlay before financial transfers occur.
-3. **1-Tap DPI Integration**: Locks UPI payment apps for 30 minutes and dispatches structured incident payloads to the National Cyber Crime Helpline (1930 I4C Portal).
+1. **100% On-Device Local Processing**: Audio is processed in volatile RAM micro-buffers (3-second detection window, continuous thereafter). Zero audio recorded or uploaded to cloud (100% private).
+2. **Active Real-Time Interception**: Displays a `SYSTEM_ALERT_WINDOW` Red Warning Overlay within the first 3 seconds of a detected synthetic voice call.
+3. **1-Tap DPI Integration**: Activates 30-minute guided UPI protection mode and dispatches structured incident payloads to the National Cyber Crime Helpline (1930 I4C Portal).
 
 ---
 
@@ -109,15 +109,13 @@ SwarVed_AI/
 
 ```mermaid
 graph TD
-    A[Incoming Audio Stream 16kHz PCM] --> B[RNNoise C++ Background Noise Pre-filter]
-    B --> C[Sliding Window Buffer: 100ms Frame / 25ms Hop]
-    C --> D1[1. MFCC Extraction - 20 Coeffs]
-    C --> D2[2. LFCC Extraction - 30 Coeffs for Vocoder High Freq Artifacts]
-    C --> D3[3. Formant Discontinuity Ratio F2/F1 - Voice Modulator Detection]
-    C --> D4[4. Neural Vocoder Resynthesis Residue & Glottal Micro-Tremor Variance]
-    D1 & D2 & D3 & D4 --> E[Feature Vector Matrix: 1x80x128]
-    E --> F[C++ ONNX Runtime Engine - Conformer Int8 Model]
-    F --> G[Synthetic / Converted Voice Probability Score: 0.0 to 1.0]
+    A[Incoming Audio Stream 16kHz PCM] --> B[PhoneCallReceiver — Auto-Start on Call Detection]
+    B --> C[AudioRecord Sliding Window Buffer: 3s Frame]
+    C --> D1[Stream A: Wav2Vec2 SSL + AASIST HS-GAT — 128-dim]
+    C --> D2[Stream B: LFCC 180-dim + Res2Net-50 + SE — 128-dim]
+    D1 & D2 --> E[Dual AM-Softmax Fusion — 256-dim]
+    E --> F[C++ ONNX Runtime INT8 Engine]
+    F --> G[Synthetic / Real Voice Probability Score: 0.0 to 1.0]
 ```
 
 ---
@@ -150,15 +148,15 @@ graph TD
 - **Slide 1: Title & Overview**: PS Code, Title, Ministry (*MHA/I4C*), Team Name, Product (*SwarVed AI*).
 - **Slide 2: Problem Definition**: Digital Arrest & AI Voice Cloning statistics ($100M+ loss).
 - **Slide 3: Proposed Solution**: High-res architecture diagram, C++ ONNX engine, Red Overlay.
-- **Slide 4: Innovation & Moat**: On-device <45ms engine vs. 5s cloud lag; Vocoder Glitch Detection.
-- **Slide 5: Technical Stack & Security**: 12.4MB Int8 ONNX, Zero-Data-Leakage RAM privacy.
+- **Slide 4: Innovation & Moat**: On-device 3s detection window vs. 5s+ cloud lag; Dual-Stream SSL architecture (Wav2Vec2 + AASIST + LFCC-Res2Net); 97.81% validation accuracy; zero sample enrollment required.
+- **Slide 5: Technical Stack & Security**: 123 MB INT8 ONNX Dual-Stream model (full E2E pipeline); Zero-Data-Leakage RAM privacy; PhoneCallReceiver auto-triggers on call detection.
 - **Slide 6: Team Competency**: 6-member team roles, 7-day milestones, rollout plan.
 
 ---
 
 ## 🎬 9. The 30-Second Live Stage Demo Script
 
-1. **Step 1 (The Trigger)**: Presenter A holds phone on stage. Presenter B calls from jury desk using AI voice generator saying *"Beta, urgent ₹50,000 sent karo, accident ho gaya hai."*
-2. **Step 2 (The Interception - 1.5s)**: Within 1.5s, phone flashes RED:  
+1. **Step 1 (The Trigger)**: Presenter A holds phone on stage on speakerphone. Presenter B calls from jury desk using AI voice generator saying *"Beta, urgent ₹50,000 sent karo, accident ho gaya hai."*
+2. **Step 2 (The Interception — within 3 seconds)**: Within the first 3-second audio window, phone flashes RED:  
    🚨 **"AI SYNTHETIC VOICE DETECTED! DO NOT TRANSFER MONEY."**
-3. **Step 3 (The Action)**: Presenter taps **"Lock UPI Transactions"** $\rightarrow$ App simulates locking GPay and shows instant dispatch payload sent to **1930 Cyber Helpline**!
+3. **Step 3 (The Action)**: Presenter taps **"ACTIVATE 30-MIN UPI PROTECTION"** → App activates 30-minute guided protection mode and dispatches an official structured complaint payload to the **1930 Cyber Helpline via the I4C Backend**!

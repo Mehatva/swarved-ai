@@ -16,6 +16,7 @@ import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.swarved.guard.R
 import com.swarved.guard.alert.ScamAlertOverlayService
 import java.io.File
@@ -142,6 +143,13 @@ class AudioCaptureService : Service() {
 
     private fun handleProbability(probability: Float, triggeringPcm: ShortArray) {
         val now = SystemClock.elapsedRealtime()
+
+        // Broadcast every inference result to MainActivity for live risk meter update
+        LocalBroadcastManager.getInstance(this).sendBroadcast(
+            Intent(ACTION_PROBABILITY_UPDATE)
+                .putExtra(EXTRA_SYNTHETIC_PROBABILITY, probability)
+        )
+
         if (probability > SYNTHETIC_THRESHOLD) {
             consecutiveSafeFrames = 0
             if (alertIsArmed && now - lastAlertAtElapsedMs >= ALERT_COOLDOWN_MS) {
@@ -216,6 +224,10 @@ class AudioCaptureService : Service() {
     companion object {
         const val ACTION_START = "com.swarved.guard.action.START_AUDIO_GUARD"
         const val ACTION_STOP = "com.swarved.guard.action.STOP_AUDIO_GUARD"
+        /** Broadcast action sent to MainActivity after every 3-second inference window. */
+        const val ACTION_PROBABILITY_UPDATE = "com.swarved.guard.action.PROBABILITY_UPDATE"
+        /** Float extra: synthetic-voice probability in [0, 1]. */
+        const val EXTRA_SYNTHETIC_PROBABILITY = "synthetic_probability"
         private const val NOTIFICATION_ID = 101
         private const val NOTIFICATION_CHANNEL_ID = "audio_guard"
         private const val SAMPLE_RATE_HZ = 16_000

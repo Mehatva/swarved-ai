@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Phone call detection: auto-starts the audio guard on incoming/outgoing calls -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Required to set AudioManager.isSpeakerphoneOn and AudioManager.mode -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <application
         android:allowBackup="true"
@@ -27,6 +31,17 @@
         <service
             android:name=".alert.ScamAlertOverlayService"
             android:exported="false" />
+        <!--
+            PhoneCallReceiver: listens for TelephonyManager.ACTION_PHONE_STATE_CHANGED
+            and auto-starts the audio guard + enables speakerphone when a call is active.
+        -->
+        <receiver
+            android:name=".receiver.PhoneCallReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+            </intent-filter>
+        </receiver>
         <activity
             android:name=".MainActivity"
             android:exported="true"
