@@ -27,18 +27,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvRiskPercentage: TextView
     private lateinit var tvRiskStatus: TextView
 
+    // Receives probability updates from AudioCaptureService in real time
     private val inferenceReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (demoGodModeActive) return // Ignore real model if God Mode is active
             val prob = intent.getFloatExtra(AudioCaptureService.EXTRA_SYNTHETIC_PROBABILITY, 0f)
             updateRiskMeter(prob)
         }
     }
-    
-    // --- HACKATHON DEMO GOD MODE ---
-    private var tapCount = 0
-    private var lastTapTime = 0L
-    private var demoGodModeActive = false
 
     private val runtimePermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -69,28 +64,6 @@ class MainActivity : AppCompatActivity() {
         )
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = IncidentAdapter(incidents)
-
-        // Secret Triple-Tap Trigger for live demo
-        tvRiskStatus.setOnClickListener {
-            val now = System.currentTimeMillis()
-            if (now - lastTapTime > 1000) {
-                tapCount = 0
-            }
-            lastTapTime = now
-            tapCount++
-            
-            if (tapCount >= 3 && !demoGodModeActive) {
-                demoGodModeActive = true
-                updateRiskMeter(0.99f)
-                
-                // Trigger the Red Alert Overlay manually
-                val intent = Intent(this, ScamAlertOverlayService::class.java)
-                    .setAction(ScamAlertOverlayService.ACTION_SHOW)
-                    .putExtra(ScamAlertOverlayService.EXTRA_SYNTHETIC_PROBABILITY, 0.99f)
-                    .putExtra(ScamAlertOverlayService.EXTRA_TRIGGERING_PCM, ShortArray(0))
-                startService(intent)
-            }
-        }
 
         requestRuntimePermissionsOrContinue()
     }
