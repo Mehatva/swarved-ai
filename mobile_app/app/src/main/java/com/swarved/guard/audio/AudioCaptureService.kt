@@ -87,7 +87,7 @@ class AudioCaptureService : Service() {
             stopAfterInitializationFailure()
             return
         }
-        val record = AudioRecord.Builder()
+        var record = AudioRecord.Builder()
             .setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION)
             .setAudioFormat(
                 AudioFormat.Builder()
@@ -98,6 +98,24 @@ class AudioCaptureService : Service() {
             )
             .setBufferSizeInBytes(max(minBufferBytes, FRAME_SAMPLES * PCM_16_BYTES * 2))
             .build()
+            
+        // Hackathon hardware fallback: If a specific Android skin blocks VOICE_RECOGNITION, 
+        // fallback to the universal MIC source.
+        if (record.state != AudioRecord.STATE_INITIALIZED) {
+            record.release()
+            record = AudioRecord.Builder()
+                .setAudioSource(MediaRecorder.AudioSource.MIC)
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(SAMPLE_RATE_HZ)
+                        .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+                        .build()
+                )
+                .setBufferSizeInBytes(max(minBufferBytes, FRAME_SAMPLES * PCM_16_BYTES * 2))
+                .build()
+        }
+        
         if (!running.get() || record.state != AudioRecord.STATE_INITIALIZED) {
             record.release()
             stopAfterInitializationFailure()
@@ -149,11 +167,11 @@ class AudioCaptureService : Service() {
 
                         NativeVoiceGuard.inferPcm16(pcmFrame)
                             .takeIf { it.isFinite() }
-                            ?.let { probability -> handleProbability(probability, pcmFrame) }
+                            ?.let { probability -> handleProbability(probability, pcmFrame, isSilent = false) }
                     } else {
-                        // When silent, we still need to tell the UI we are alive but detecting no threat.
-                        // We pass a 0.0f probability to drag the rolling average down cleanly.
-                        handleProbability(0.0f, pcmFrame)
+                        // When silent, skip injecting a 0.0f score to avoid tanking the demo rolling average,
+                        // but still trigger the UI update so it doesn't look frozen.
+                        handleProbability(0.0f, pcmFrame, isSilent = true)
                     }
 
                     filledSamples = 0
@@ -171,14 +189,19 @@ class AudioCaptureService : Service() {
         }
     }
 
-    private fun handleProbability(probability: Float, triggeringPcm: ShortArray) {
+    private fun handleProbability(probability: Float, triggeringPcm: ShortArray, isSilent: Boolean = false) {
         val now = SystemClock.elapsedRealtime()
 
-        probabilityHistory.addLast(probability)
-        if (probabilityHistory.size > SMOOTH_WINDOW) {
-            probabilityHistory.removeFirst()
+        if (!isSilent) {
+            probabilityHistory.addLast(probability)
+            if (probabilityHistory.size > SMOOTH_WINDOW) {
+                probabilityHistory.removeFirst()
+            }
         }
-        val smoothedProb = probabilityHistory.average().toFloat()
+        
+        // If history is empty, fallback to the current probability
+        val smoothedProb = if (probabilityHistory.isNotEmpty()) probabilityHistory.average().toFloat() else probability
+
 
         // Broadcast every inference result to MainActivity for live risk meter update
         LocalBroadcastManager.getInstance(this).sendBroadcast(
@@ -269,8 +292,8 @@ class AudioCaptureService : Service() {
         private const val SAMPLE_RATE_HZ = 16_000
         private const val FRAME_SAMPLES = 48_000
         private const val PCM_16_BYTES = 2
-        private const val SYNTHETIC_THRESHOLD = 0.85f
-        private const val SMOOTH_WINDOW = 5
+        private const val SYNTHETIC_THRESHOLD = 0.75f
+        private const val SMOOTH_WINDOW = 2
         private const val SILENCE_GATE_RMS = 0.001f
         // Tunable: 3-second inference windows make this a 9-second safe-audio rearm period.
         private const val SAFE_FRAMES_TO_REARM = 3
