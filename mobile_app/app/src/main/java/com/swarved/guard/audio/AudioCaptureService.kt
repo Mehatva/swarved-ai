@@ -34,6 +34,7 @@ class AudioCaptureService : Service() {
     private var lastAlertAtElapsedMs = -ALERT_COOLDOWN_MS
     private var consecutiveSafeFrames = 0
     private var alertIsArmed = true
+    private val probabilityHistory = ArrayDeque<Float>()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -123,9 +124,34 @@ class AudioCaptureService : Service() {
                 if (samplesRead > 0) {
                     filledSamples += samplesRead
                     if (filledSamples != FRAME_SAMPLES) continue
-                    NativeVoiceGuard.inferPcm16(pcmFrame)
-                        .takeIf { it.isFinite() }
-                        ?.let { probability -> handleProbability(probability, pcmFrame) }
+
+                    // --- Silence Gate & Peak Normalization ---
+                    var maxVal = 0.0f
+                    var sumSq = 0.0
+                    for (sample in pcmFrame) {
+                        val v = sample.toFloat() / 32768f
+                        sumSq += (v * v).toDouble()
+                        val absV = kotlin.math.abs(v)
+                        if (absV > maxVal) maxVal = absV
+                    }
+                    val rms = kotlin.math.sqrt(sumSq / pcmFrame.size).toFloat()
+
+                    if (rms >= SILENCE_GATE_RMS) {
+                        if (maxVal > 0.0001f) {
+                            val scale = 0.8f / maxVal
+                            for (i in pcmFrame.indices) {
+                                var scaled = (pcmFrame[i] * scale).toInt()
+                                if (scaled > 32767) scaled = 32767
+                                else if (scaled < -32768) scaled = -32768
+                                pcmFrame[i] = scaled.toShort()
+                            }
+                        }
+
+                        NativeVoiceGuard.inferPcm16(pcmFrame)
+                            .takeIf { it.isFinite() }
+                            ?.let { probability -> handleProbability(probability, pcmFrame) }
+                    }
+
                     filledSamples = 0
                 } else if (samplesRead < 0) {
                     break
@@ -144,13 +170,19 @@ class AudioCaptureService : Service() {
     private fun handleProbability(probability: Float, triggeringPcm: ShortArray) {
         val now = SystemClock.elapsedRealtime()
 
+        probabilityHistory.addLast(probability)
+        if (probabilityHistory.size > SMOOTH_WINDOW) {
+            probabilityHistory.removeFirst()
+        }
+        val smoothedProb = probabilityHistory.average().toFloat()
+
         // Broadcast every inference result to MainActivity for live risk meter update
         LocalBroadcastManager.getInstance(this).sendBroadcast(
             Intent(ACTION_PROBABILITY_UPDATE)
-                .putExtra(EXTRA_SYNTHETIC_PROBABILITY, probability)
+                .putExtra(EXTRA_SYNTHETIC_PROBABILITY, smoothedProb)
         )
 
-        if (probability > SYNTHETIC_THRESHOLD) {
+        if (smoothedProb > SYNTHETIC_THRESHOLD) {
             consecutiveSafeFrames = 0
             if (alertIsArmed && now - lastAlertAtElapsedMs >= ALERT_COOLDOWN_MS) {
                 lastAlertAtElapsedMs = now
@@ -158,7 +190,7 @@ class AudioCaptureService : Service() {
                 startService(
                     Intent(this, ScamAlertOverlayService::class.java)
                         .setAction(ScamAlertOverlayService.ACTION_SHOW)
-                        .putExtra(ScamAlertOverlayService.EXTRA_SYNTHETIC_PROBABILITY, probability)
+                        .putExtra(ScamAlertOverlayService.EXTRA_SYNTHETIC_PROBABILITY, smoothedProb)
                         .putExtra(
                             ScamAlertOverlayService.EXTRA_TRIGGERING_PCM,
                             triggeringPcm.copyOf()
@@ -234,6 +266,8 @@ class AudioCaptureService : Service() {
         private const val FRAME_SAMPLES = 48_000
         private const val PCM_16_BYTES = 2
         private const val SYNTHETIC_THRESHOLD = 0.85f
+        private const val SMOOTH_WINDOW = 5
+        private const val SILENCE_GATE_RMS = 0.008f
         // Tunable: 3-second inference windows make this a 9-second safe-audio rearm period.
         private const val SAFE_FRAMES_TO_REARM = 3
         private const val ALERT_COOLDOWN_MS = 30_000L
