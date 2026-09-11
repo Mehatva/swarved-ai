@@ -150,6 +150,10 @@ class AudioCaptureService : Service() {
                         NativeVoiceGuard.inferPcm16(pcmFrame)
                             .takeIf { it.isFinite() }
                             ?.let { probability -> handleProbability(probability, pcmFrame) }
+                    } else {
+                        // When silent, we still need to tell the UI we are alive but detecting no threat.
+                        // We pass a 0.0f probability to drag the rolling average down cleanly.
+                        handleProbability(0.0f, pcmFrame)
                     }
 
                     filledSamples = 0
@@ -267,7 +271,7 @@ class AudioCaptureService : Service() {
         private const val PCM_16_BYTES = 2
         private const val SYNTHETIC_THRESHOLD = 0.85f
         private const val SMOOTH_WINDOW = 5
-        private const val SILENCE_GATE_RMS = 0.008f
+        private const val SILENCE_GATE_RMS = 0.001f
         // Tunable: 3-second inference windows make this a 9-second safe-audio rearm period.
         private const val SAFE_FRAMES_TO_REARM = 3
         private const val ALERT_COOLDOWN_MS = 30_000L
