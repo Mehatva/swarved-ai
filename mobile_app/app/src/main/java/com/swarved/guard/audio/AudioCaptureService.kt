@@ -11,6 +11,8 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.NoiseSuppressor
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
@@ -122,6 +124,19 @@ class AudioCaptureService : Service() {
             return
         }
         audioRecord = record
+        
+        // Disable aggressive hardware noise suppression so the AI model gets the raw acoustic anomalies
+        try {
+            if (NoiseSuppressor.isAvailable()) {
+                NoiseSuppressor.create(record.audioSessionId)?.enabled = false
+            }
+            if (AcousticEchoCanceler.isAvailable()) {
+                AcousticEchoCanceler.create(record.audioSessionId)?.enabled = false
+            }
+        } catch (e: Exception) {
+            // Ignore if the OS restricts access
+        }
+        
         captureLoop(record)
     }
 
@@ -155,16 +170,6 @@ class AudioCaptureService : Service() {
                     val rms = kotlin.math.sqrt(sumSq / pcmFrame.size).toFloat()
 
                     if (rms >= SILENCE_GATE_RMS) {
-                        if (maxVal > 0.0001f) {
-                            val scale = 0.8f / maxVal
-                            for (i in pcmFrame.indices) {
-                                var scaled = (pcmFrame[i] * scale).toInt()
-                                if (scaled > 32767) scaled = 32767
-                                else if (scaled < -32768) scaled = -32768
-                                pcmFrame[i] = scaled.toShort()
-                            }
-                        }
-
                         NativeVoiceGuard.inferPcm16(pcmFrame)
                             .takeIf { it.isFinite() }
                             ?.let { probability -> handleProbability(probability, pcmFrame, isSilent = false) }
